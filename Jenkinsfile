@@ -1,9 +1,17 @@
 def gv
 pipeline {
     agent any
-    tools { 
-	    maven 'Maven'
-	}
+    environment {
+        NEW_VERSION = 'Ayush'
+	SERVER_CREDENTIALS = credentials('ansbile-target-1')
+    }
+    parameters { 
+	    	//string(name: 'DEPLOY_ENV', defaultValue: 'staging', description: '')
+                 booleanParam(name: 'executeTests', defaultValue: true, description: '')
+                 choice(name: 'VERSION', choices: ['one', 'two', 'three'], description: '')
+
+          }
+
     stages {
 		// initializing the groovy script
 		stage("init"){
@@ -11,33 +19,56 @@ pipeline {
 					script {
 					gv = load "script.groovy"
 						}
-					// maven things
-					echo "PATH = ${PATH}"
-					echo "M2_HOME = ${M2_HOME}"
 				   	}
 				}
 		// build stages
-		stage('Build Jar') {
+		stage('Build') {
 				steps {
 					// calling the groovy buildApp function
 					script {
 						gv.buildApp()
-						sh 'mvn package'
 						}
+					}
+				}
+
+		// Test stage
+	    	stage('Test') {
+				when {
+					expression {
+						params.executeTests
+						}
+					}
+				steps {
+					// calling the groovy TestApp function
+					script {
+						gv.testApp()
+						}            
+									
 					}
 				}
 	    	//Deploy stage
 	    	stage('Deploy') {
- 
+				input {
+					message "Select the enviorment to deploy to "
+					ok "done"
+					parameters {
+						choice(name: 'ONE', choices: ['dev','stagging', 'Prod' ], description: '')
+						//choice(name: 'TWO', choices: ['dev','stagging', 'Prod' ], description: '')
+						}
+					} 
 				steps {
 					// calling the groovy DeployApp function
 					script {
 						gv.deployApp()
-						withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) 
+						//echo "Deploying to ${ONE}"
+						//echo "Deploying to ${TWO}"
+						withCredentials([usernamePassword(credentialsId: 'ansbile-target-1', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) 
 							{
-								sh 'docker build -t ayush14rastogi/demo-app:jma-1.0 .'
-								sh "echo $PASS |docker login -u $USER --password-stdin"
-								sh "docker push ayush14rastogi/demo-app:jma-1.0"
+							//	sh "echo ${PASSWORD}"
+							  // also available as a Groovy variable
+							  echo USERNAME
+							  // or inside double quotes for string interpolation
+							  echo "username is $USERNAME"
 							}
 									
 					}
@@ -45,5 +76,4 @@ pipeline {
 			}
 	}
 }
-	
 	
