@@ -1,7 +1,8 @@
-# Pull base image 
-From tomcat:8-jre8
+FROM openjdk:8-jre-alpine
 
-# Maintainer 
-MAINTAINER "arsunnyrock288@gmail.com" 
-COPY ./webapp.war /usr/local/tomcat/webapps
+EXPOSE 8080
 
+COPY ./target/java-maven-app-*.jar /usr/app/
+WORKDIR /usr/app
+
+CMD java -jar java-maven-app-*.jar
